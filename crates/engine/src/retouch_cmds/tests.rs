@@ -400,6 +400,7 @@ fn retouch_commands_are_registered_and_need_a_pixel_layer() {
         "paint.sharpen",
         "paint.smudge",
         "paint.historyBrush",
+        "paint.artHistoryBrush",
         "paint.remove",
     ];
     for id in ids {
@@ -1508,4 +1509,117 @@ fn spot_healing_keeps_film_grain_through_overlapping_strokes() {
             assert!((m - m0).abs() < 3.0, "{kind} depth {depth} stroke {}: mean {m} vs {m0}", i + 1);
         }
     }
+}
+
+/// A document whose state 1 is half red, half blue, then painted over black (state 2).
+fn art_history_session(depth: u64) -> Session {
+    let mut s = session(64, 40, depth, "rgb");
+    paint_layer(&mut s, |x, _| if x < 32 { [1.0, 0.0, 0.0, 1.0] } else { [0.0, 0.0, 1.0, 1.0] });
+    paint_layer(&mut s, |_, _| [0.0, 0.0, 0.0, 1.0]);
+    s
+}
+
+/// Pixels of the active layer that are no longer black.
+fn painted(s: &Session) -> Vec<[f32; 4]> {
+    let mut out = Vec::new();
+    for y in 0..40 {
+        for x in 0..64 {
+            let p = rgba(s, x, y);
+            if p[0] + p[1] + p[2] > 0.05 {
+                out.push(p);
+            }
+        }
+    }
+    out
+}
+
+#[test]
+fn art_history_paints_strokes_in_the_source_colours() {
+    for depth in [8u64, 16, 32] {
+        let mut s = art_history_session(depth);
+        let steps = s.active().unwrap().history.past_len();
+        let r = s
+            .execute(
+                "paint.artHistoryBrush",
+                json!({"points": [[16, 20], [48, 20]], "size": 5, "hardness": 100, "state": 1, "style": "tightMedium", "area": 30}),
+            )
+            .unwrap();
+        assert_eq!(s.active().unwrap().history.past_len(), steps + 1, "one history step");
+        assert!(r["damage"].as_array().is_some_and(|d| d[2].as_i64() > Some(0)));
+        let px = painted(&s);
+        assert!(px.len() > 50, "depth {depth}: {} pixels painted", px.len());
+        // Only the source's red and blue (blended with black at stroke edges): never green.
+        assert!(px.iter().all(|p| p[1] < tol(depth)), "depth {depth}");
+        assert!(px.iter().any(|p| p[0] > 0.99) && px.iter().any(|p| p[2] > 0.99), "both source colours, depth {depth}");
+        // Far from the stroke nothing changed.
+        assert_eq!(rgba(&s, 2, 2), [0.0, 0.0, 0.0, 1.0]);
+    }
+}
+
+/// The same params paint the same pixels (Actions and journal replay); the reply names the seed.
+#[test]
+fn art_history_replays_exactly() {
+    let mut s = art_history_session(8);
+    let p = json!({"points": [[10, 10], [50, 30]], "size": 4, "state": 1, "style": "looseCurl", "area": 25});
+    let seed = s.execute("paint.artHistoryBrush", p.clone()).unwrap()["seed"].as_u64().unwrap();
+    let first = painted(&s);
+    s.execute("edit.undo", json!({})).unwrap();
+    assert!(painted(&s).is_empty());
+    s.execute("paint.artHistoryBrush", p.clone()).unwrap();
+    assert_eq!(painted(&s), first);
+    s.execute("edit.undo", json!({})).unwrap();
+    let mut other = p.clone();
+    other["seed"] = json!(seed.wrapping_add(1));
+    s.execute("paint.artHistoryBrush", other).unwrap();
+    assert_ne!(painted(&s), first, "another seed scatters differently");
+}
+
+/// Tolerance 100 paints only where the layer differs completely from the source.
+#[test]
+fn art_history_tolerance_and_dab_and_bad_params() {
+    let mut s = art_history_session(8);
+    // The layer equals state 2 (black): with a tolerance, nothing differs from it.
+    let r = s.execute("paint.artHistoryBrush", json!({"points": [[30, 20]], "size": 4, "state": 2, "tolerance": 10, "area": 40})).unwrap();
+    assert_eq!(r["damage"], json!([0, 0, 0, 0]));
+    assert!(painted(&s).is_empty());
+    // Area 0 + Dab: one round dab of the source colour under the pointer.
+    s.execute("paint.artHistoryBrush", json!({"points": [[10, 10]], "size": 6, "hardness": 100, "state": 1, "style": "dab", "area": 0})).unwrap();
+    assert!(rgba(&s, 10, 10)[0] > 0.99);
+    for bad in [
+        json!({"points": [[5, 5]], "style": "plaid"}),
+        json!({"points": [[5, 5]], "style": 3}),
+        json!({"points": [[5, 5]], "area": "wide"}),
+        json!({"points": [[5, 5]], "tolerance": [1]}),
+        json!({"points": [[5, 5]], "seed": -1}),
+        json!({"points": [[5, 5]], "mode": "Sparkle"}),
+        json!({"points": [[5, 5]], "state": 99}),
+        json!({"points": []}),
+        json!({}),
+        // A huge brush with a Long style (30000 px strokes) needs too much coverage for one stroke:
+        // refused, not allocated.
+        json!({"points": [[5, 5]], "size": 5000, "style": "tightLong", "area": 0, "state": 1}),
+    ] {
+        let before = painted(&s);
+        assert!(s.execute("paint.artHistoryBrush", bad.clone()).is_err(), "{bad}");
+        assert_eq!(painted(&s), before, "{bad} changed nothing");
+    }
+}
+
+/// A long drag with a large brush and long strokes is painted from end to end (thinned to the
+/// coverage budget), not cut off or refused.
+#[test]
+fn art_history_long_drags_paint_end_to_end() {
+    let mut s = session(3000, 400, 8, "rgb");
+    paint_layer(&mut s, |x, _| if x < 1500 { [1.0, 0.0, 0.0, 1.0] } else { [0.0, 0.0, 1.0, 1.0] });
+    paint_layer(&mut s, |_, _| [0.0, 0.0, 0.0, 1.0]);
+    let pts: Vec<[i32; 2]> = (0..300).map(|i| [10 + i * 10 % 2980, if i % 2 == 0 { 100 } else { 300 }]).collect();
+    let r = s.execute("paint.artHistoryBrush", json!({"points": pts, "size": 120, "style": "tightLong", "area": 300, "state": 1})).unwrap();
+    let d = r["damage"].as_array().unwrap();
+    let (x0, w) = (d[0].as_i64().unwrap(), d[2].as_i64().unwrap());
+    assert!(x0 < 200 && x0 + w > 2800, "painted across the drag: {r}");
+    // Nothing is painted outside the canvas, though strokes run past its edges.
+    assert!(x0 >= 0 && d[1].as_i64() >= Some(0) && x0 + w <= 3000 && d[1].as_i64().unwrap() + d[3].as_i64().unwrap() <= 400, "{r}");
+    let st = s.active().unwrap();
+    let b = st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap().content_bounds();
+    assert!(st.doc.bounds().contains_rect(&b), "{b:?}");
 }

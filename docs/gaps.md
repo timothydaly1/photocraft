@@ -1,6 +1,6 @@
 # Where PhotoCraft falls short of Photoshop
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** minor (Tilt-Shift evidence added to G2; earlier the same day: major, every known shortfall ranked from the re-measure) · **Target:** Adobe Photoshop 2026
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-11 · **Change:** minor (G6 closed: all 68 tools present) · **Target:** Adobe Photoshop 2026
 
 Every known shortfall against Photoshop 2026 (27.11.0), one entry each, ranked by user impact
 on the way to beta. This is the work list agents pick from: take the highest-ranked entry that
@@ -24,7 +24,7 @@ what an agent can't finish alone.
 | G3 | User-reported bug backlog | stability, UI | blocks beta | 250–400 h | [target-app-parity](target-app-parity.md) |
 | G4 | Brush feel | UI / painting | high | 100–180 h | [brush-parity](brush-parity.md) |
 | G5 | Transform, handles and modifiers | UI | high | 60–110 h | [ui-parity](ui-parity.md) |
-| G6 | Missing tools (12) | features | high | 60–100 h | [ui-parity](ui-parity.md#tools) |
+| G6 | Missing tools: **closed 2026-10-11** (68 of 68) | features | — | 0 h | [ui-parity](ui-parity.md#tools) |
 | G7 | Workspaces shown as parameter dialogs | features | high | 80–140 h | [target-app-parity](target-app-parity.md#feature-areas) |
 | G8 | Type depth | features | high | 120–200 h | [target-app-parity](target-app-parity.md#feature-areas) |
 | G9 | Panels, preferences and workspace | UI | medium-high | 150–250 h | [ui-parity](ui-parity.md#panels-and-workspace) |
@@ -54,15 +54,18 @@ what an agent can't finish alone.
   scripted check there) is the only real oracle.
 
 ### G6. Missing tools
-- **Missing (4 of 68):** Color Replacement (engine command exists), Art
-  History Brush, Add Anchor Point, Delete Anchor Point. Convert Point landed (#3204). Freeform
-  Pen and Curvature Pen landed (#1054); Color Sampler landed (#1046, `view.colorSamplers.*`); Horizontal and Vertical Type Mask landed (#1055,
-  `type.createSelection`); Perspective Crop landed (#1043, `image.perspectiveCrop`); Frame landed
-  (#2914).
-- **Evidence:** `Tool` enum (`crates/ui-egui/src/state.rs`) against the 67 `<tool>` entries of
-  Photoshop's `Default Keyboard Shortcuts.kys` plus Remove, Triangle and Curvature Pen.
-- **Impact:** users look for them by name and shortcut; several are daily tools for designers.
-- **Estimate:** 60–100 h (2–9 h each, per the calibration).
+- **Closed 2026-10-11:** every Photoshop tool is present (68 of 68). The last, the Art History
+  Brush (`paint.artHistoryBrush`, with Style, Area and Tolerance), landed 2026-10-11. Before it:
+  Color Replacement (#1045), Add and Delete Anchor Point (#1044), Convert Point (#3204), Freeform
+  and Curvature Pen (#1054), Color Sampler (#1046), Horizontal and Vertical Type Mask (#1055),
+  Perspective Crop (#1043), Frame (#2914).
+- **Evidence:** `Tool::ALL` (`crates/ui-egui/src/state.rs`, 68) against the 67 `<tool>` entries of
+  Photoshop's `Default Keyboard Shortcuts.kys` plus Remove, Triangle and Curvature Pen, minus legacy
+  Rounded Rectangle and Targeted Adjustment ([ui-parity](ui-parity.md#tools)).
+- **Still open (tracked elsewhere):** how closely each tool behaves is in the per-tool rows of
+  [ui-parity](ui-parity.md) and [brush-parity](brush-parity.md) (for example the Art History
+  Brush's strokes are our own model, not yet compared with Photoshop's output).
+- **Estimate:** 0 h.
 
 ### G7. Workspaces shown as parameter dialogs
 - **Missing:** Select and Mask workspace layout
@@ -218,6 +221,7 @@ what an agent can't finish alone.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-11 | minor | G6 closed: Art History Brush added, so all 68 tools are present (Color Replacement and Add/Delete Anchor Point had landed) |
 | 2026-10-10 | minor | G2: recorded Tilt-Shift computation/filtered-proxy measurements and limits; gap and estimate remain open |
 | 2026-10-10 | minor | Checked against the alpha gate (no alpha blockers); #2374 marked closed |
 | 2026-10-10 | major | First version, from the full re-measure against Photoshop 2026 27.11.0 and the open issues |

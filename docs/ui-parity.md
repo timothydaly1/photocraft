@@ -1,6 +1,6 @@
 # UI parity: tools, handles, modifiers and feel
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-11 · **Change:** minor (Hand-tool flick panning) · **Target:** Adobe Photoshop 2026
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-11 · **Change:** minor (Art History Brush: all 68 tools present) · **Target:** Adobe Photoshop 2026
 
 How PhotoCraft's direct manipulation compares with Photoshop 2026 (27.11.0): the toolbox, the
 handles and modifier keys of each gesture, nudging, snapping, numeric precision, navigation,
@@ -22,7 +22,8 @@ for panels and workspace (G9).
 
 Measured: the `Tool` enum (`state.rs:64`) and `TOOL_SECTIONS` (`panels.rs:17`, 22 flyout slots)
 against the 67 `<tool>` entries of Photoshop's `Default Keyboard Shortcuts.kys` plus Remove,
-Triangle and Curvature Pen (minus legacy Rounded Rectangle and Targeted Adjustment) = 68.
+Triangle and Curvature Pen (minus legacy Rounded Rectangle and Targeted Adjustment) = 68. All 68 are
+present since 2026-10-11 (`Tool::ALL`).
 
 | Group | Present | Missing |
 |---|---|---|
@@ -34,13 +35,13 @@ Triangle and Curvature Pen (minus legacy Rounded Rectangle and Targeted Adjustme
 | Frame | Frame (frames are groups clipped by a rectangular or elliptical mask) | |
 | Eyedropper | Eyedropper, Color Sampler, Ruler, Note, Count | |
 | Retouch | Remove, Spot Healing, Healing, Patch, Content-Aware Move, Red Eye | |
-| Brush | Brush, Pencil, Mixer Brush | Color Replacement (`paint.colorReplacement` exists) |
+| Brush | Brush, Pencil, Mixer Brush, Color Replacement (#1045) | |
 | Stamp | Clone Stamp, Pattern Stamp | |
-| History | History Brush | Art History Brush |
+| History | History Brush, Art History Brush (`paint.artHistoryBrush`) | |
 | Eraser | Eraser, Background Eraser, Magic Eraser | |
 | Fill | Gradient, Paint Bucket | |
 | Focus, toning | Blur, Sharpen, Smudge, Dodge, Burn, Sponge | |
-| Pen | Pen, Freeform Pen, Curvature Pen (#1054), Convert Point (#3204; also ⌥ with Pen) | Add Anchor Point, Delete Anchor Point |
+| Pen | Pen, Freeform Pen, Curvature Pen (#1054), Add Anchor Point, Delete Anchor Point (#1044), Convert Point (#3204; also ⌥ with Pen) | |
 | Type | Horizontal, Vertical, Vertical Type Mask, Horizontal Type Mask | |
 | Path selection | Path Selection, Direct Selection | |
 | Shapes | Rectangle, Ellipse, Triangle, Polygon, Line, Custom Shape | (Star is a Polygon option in Photoshop) |
@@ -210,3 +211,4 @@ Paragraph; the rest open as in-app floating windows.
 | 2026-10-10 | major | First version, from a source audit against Photoshop 2026 27.11.0's shortcuts file and the open issues |
 | 2026-10-10 | minor | Fixed Crop live resize snapping feedback and outdated-camera rendering, applied ratios immediately to centred inscribed previews, and removed two-point options-bar overflow; added pointer, rendering, dropdown/Enter, Swap/X and scrolling regressions |
 | 2026-10-11 | minor | Flick panning done: releasing a moving Hand drag (tool, Space or middle button) glides and decays, gated by Enable Flick Panning |
+| 2026-10-11 | minor | Toolbox complete, 68 of 68: Art History Brush added; Color Replacement and Add/Delete Anchor Point rows corrected (they had landed) |
