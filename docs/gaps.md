@@ -1,6 +1,6 @@
 # Where PhotoCraft falls short of Photoshop
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-11 · **Change:** minor (G1: Lab and CMYK Invert, Posterize and Threshold work on the document's channels, Photoshop-oracle floor 139/258; G8: triple-, quadruple- and five-click type selection landed, TYPE-218-8 done; Czech UI localization evidence added to G13; G14: D5100 crop and Camera Raw tuning validation) · **Target:** Adobe Photoshop 2026
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-11 · **Change:** minor (G8: Character panel OpenType buttons landed, TYPE-218-5 stays partial; G8: triple-, quadruple- and five-click type selection landed, TYPE-218-8 done; Czech UI localization evidence added to G13; G14: D5100 crop and Camera Raw tuning validation) · **Target:** Adobe Photoshop 2026
 
 Every known shortfall against Photoshop 2026 (27.11.0), one entry each, ranked by user impact
 on the way to beta. This is the work list agents pick from: take the highest-ranked entry that
@@ -43,7 +43,7 @@ what an agent can't finish alone.
 - **Missing:** PSDs we write are not always accepted by Photoshop, and Photoshop-authored files
   don't always render as Photoshop renders them.
 - **Evidence:** corpus floors (`crates/io/tests/corpus.rs`, scorecard): Photoshop-authored
-  oracles 139/258 (54%; Lab and CMYK Invert, Posterize and Threshold on the document's channels 2026-10-11), io corpus 146/170 (86%), psd-tools 236/309 (76%); round trips ~100%
+  oracles 145/258 (56%, re-measured 2026-10-12), io corpus 146/170 (86%), psd-tools 236/309 (76%); round trips ~100%
   within the corpus. Smart-filter re-render matches 5/30. User reports: a PSD with text layers
   re-saved unmodified would not reopen (#2374, closed 2026-10-10), Photoshop 26.6 cannot reopen our files (#1281), "PSD not
   opening in Photoshop" (#2469), a CS2-era smart object unavailable (#2465), PSB smart object
@@ -76,8 +76,9 @@ what an agent can't finish alone.
 
 ### G8. Type depth
 - **Missing:** type on a path (TYPE-218-1), paragraph direction UI (TYPE-218-2), complex-script
-  fallback fonts and golden tests (TYPE-218-3), OpenType panel UI (TYPE-218-5), live Warp Text
-  preview (TYPE-218-7, #2689), "rasterize and continue" for distort/perspective on type
+  fallback fonts and golden tests (TYPE-218-3), OpenType Numerals and Stylistic Sets submenus
+  (TYPE-218-5; the Character panel buttons landed 2026-10-11, #3752), live Warp Text preview
+  (TYPE-218-7, #2689), "rasterize and continue" for distort/perspective on type
   (TYPE-218-9), text free transform (#2630). Done since the re-measure: manual and optical kerning
   with PSD round trip (TYPE-218-6, #206), variable-font axes (TYPE-218-4, #2985).
 - **Evidence:** scorecard Type: 3 done, 2 partial, 4 missing. 2026-10-11: 2/3/4/5 clicks select
@@ -224,10 +225,11 @@ what an agent can't finish alone.
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-10-11 | minor | G1: Lab and CMYK Invert, Posterize and Threshold work on the document's own channels; Photoshop-oracle floor 133 → 139 of 258 (137 already passed on main) |
+| 2026-10-12 | minor | G1: Lab and CMYK Invert, Posterize and Threshold work on the document's own channels (CMYK inks, 16-bit Lab Invert mirrored about neutral, exact destructive path); Photoshop-oracle floor 133 → 145 of 258, re-measured on the merged tree (main alone also passes 145) |
 | 2026-10-11 | minor | D5100 image area and Camera Raw tuning validation; G14 remains open |
 | 2026-10-11 | minor | G13: Czech dynamic UI text localized; engine messages and native review remain open |
 | 2026-10-11 | minor | G8: triple/quadruple/five-click type selection done (TYPE-218-8, #3493); Type evidence recounted |
+| 2026-10-11 | minor | G8: Character panel OpenType buttons landed (TYPE-218-5, #3752); Numerals and Stylistic Sets submenus still missing |
 | 2026-10-10 | minor | G2: recorded Tilt-Shift computation/filtered-proxy measurements and limits; gap and estimate remain open |
 | 2026-10-10 | minor | Checked against the alpha gate (no alpha blockers); #2374 marked closed |
 | 2026-10-10 | major | First version, from the full re-measure against Photoshop 2026 27.11.0 and the open issues |
