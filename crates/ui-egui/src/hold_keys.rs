@@ -84,6 +84,8 @@ pub fn cmd_moves(t: Tool) -> bool {
                 | Tool::Pen
                 | Tool::RectMarquee
                 | Tool::EllipseMarquee
+                | Tool::SingleRowMarquee
+                | Tool::SingleColumnMarquee
                 | Tool::Lasso
                 | Tool::PolygonLasso
                 | Tool::MagicWand

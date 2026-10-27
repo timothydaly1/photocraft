@@ -212,6 +212,35 @@ pub(crate) fn marquee_preview_px(o: &crate::state::ToolOptions, d: &Drag, zoom: 
     (r[2] > r[0] && r[3] > r[1]).then_some(r)
 }
 
+/// The one-pixel line `[x0, y0, x1, y1]` the Single Row or Single Column Marquee selects with
+/// the pointer at `p`: the whole row (column) of a `size` canvas under it, as in Photoshop. A
+/// pointer past an edge picks the nearest row (column). `None` for any other tool or an empty
+/// canvas.
+pub(crate) fn single_marquee_px(tool: Tool, p: [f64; 2], size: [u32; 2]) -> Option<[f64; 4]> {
+    let (w, h) = (f64::from(size[0]), f64::from(size[1]));
+    if w < 1.0 || h < 1.0 || !p[0].is_finite() || !p[1].is_finite() {
+        return None;
+    }
+    match tool {
+        Tool::SingleRowMarquee => {
+            let y = p[1].floor().clamp(0.0, h - 1.0);
+            Some([0.0, y, w, y + 1.0])
+        }
+        Tool::SingleColumnMarquee => {
+            let x = p[0].floor().clamp(0.0, w - 1.0);
+            Some([x, 0.0, x + 1.0, h])
+        }
+        _ => None,
+    }
+}
+
+/// [`single_marquee_px`] for drag `d` on the active document: the line under the pointer now.
+pub(crate) fn single_marquee_drag_px(app: &PhotocraftApp, d: &Drag) -> Option<[f64; 4]> {
+    let size = app.session.active()?.doc.size;
+    let last = d.points.last().map_or(d.start, |p| [p[0], p[1]]);
+    single_marquee_px(d.tool, last, [size.width, size.height])
+}
+
 /// The pixel rectangle `[x0, y0, x1, y1]` a marquee between two corners selects.
 pub fn marquee_px(a: [f64; 2], b: [f64; 2]) -> [f64; 4] {
     [a[0].min(b[0]).floor(), a[1].min(b[1]).floor(), a[0].max(b[0]).ceil(), a[1].max(b[1]).ceil()]
@@ -2732,7 +2761,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         }
         // Capture intent at the press, before egui's drag threshold: Type transforms keep
         // Command, and marquee add/subtract must not become a live Shift/Alt constraint.
-        let capture_press = tool.is_type() || matches!(tool, Tool::RectMarquee | Tool::EllipseMarquee);
+        let capture_press = tool.is_type() || tool.is_single_marquee() || matches!(tool, Tool::RectMarquee | Tool::EllipseMarquee);
         let tool_press = egui::Id::new(("tool-pointer-press-modifiers", idx));
         if capture_press
             && let Some((p, press_mods)) = ui.input(|i| {
@@ -3742,6 +3771,12 @@ fn draw_drag_preview(app: &mut PhotocraftApp, painter: &egui::Painter, xf: &View
             trail.draw(painter, doc_rect, xf.flip, col);
         }
         t if crate::vector_ui::is_shape_tool(t) => crate::vector_ui::draw_shape_preview(app, painter, xf, t, d.start, last, d.live),
+        // The row (column) under the pointer: the release selects exactly this line.
+        Tool::SingleRowMarquee | Tool::SingleColumnMarquee => {
+            if let Some([x0, y0, x1, y1]) = single_marquee_drag_px(app, d) {
+                crate::tool_feedback::draw_ants(painter, &marquee_ants(xf, d.tool, [x0, y0], [x1, y1]), true);
+            }
+        }
         // Nothing selected yet: no outline, as the release would deselect.
         Tool::RectMarquee | Tool::EllipseMarquee if marquee.is_none() => {}
         Tool::RectMarquee | Tool::EllipseMarquee | Tool::ObjectSelection => {
@@ -4442,6 +4477,15 @@ pub(crate) fn finish_gesture(app: &mut PhotocraftApp, d: Drag) {
             let mode = selection_mode(app, d.modifiers);
             let (aa, feather) = (app.ui.tool_options.anti_alias, app.ui.tool_options.feather);
             let _ = app.run("select.rect", json!({"x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0, "mode": mode, "ellipse": d.tool == Tool::EllipseMarquee, "antiAlias": aa, "feather": feather}));
+        }
+        // Photoshop: a click (or a drag, released where the line should be) selects one pixel
+        // row (column) across the canvas. Hard-edged: Anti-alias doesn't apply, Feather does.
+        Tool::SingleRowMarquee | Tool::SingleColumnMarquee => {
+            let Some([x0, y0, x1, y1]) = single_marquee_drag_px(app, &d) else { return };
+            let mode = selection_mode(app, d.modifiers);
+            let feather = app.ui.tool_options.feather;
+            let _ =
+                app.run("select.rect", json!({"x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0, "mode": mode, "antiAlias": false, "feather": feather}));
         }
         Tool::Patch if crate::retouch_ui::patch_drags_selection(app, d.start, d.modifiers) => crate::retouch_ui::finish_patch(app, d.start, [end[0], end[1]]),
         Tool::ContentAwareMove if crate::retouch_ui::patch_drags_selection(app, d.start, d.modifiers) => {

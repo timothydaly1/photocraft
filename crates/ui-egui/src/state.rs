@@ -65,6 +65,10 @@ pub enum Tool {
     Move,
     RectMarquee,
     EllipseMarquee,
+    /// Selects a one-pixel row across the whole canvas at the click.
+    SingleRowMarquee,
+    /// Selects a one-pixel column down the whole canvas at the click.
+    SingleColumnMarquee,
     Lasso,
     PolygonLasso,
     MagneticLasso,
@@ -118,10 +122,12 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub const ALL: [Tool; 53] = [
+    pub const ALL: [Tool; 55] = [
         Tool::Move,
         Tool::RectMarquee,
         Tool::EllipseMarquee,
+        Tool::SingleRowMarquee,
+        Tool::SingleColumnMarquee,
         Tool::Lasso,
         Tool::PolygonLasso,
         Tool::MagneticLasso,
@@ -179,6 +185,8 @@ impl Tool {
             Tool::Move => "Move Tool",
             Tool::RectMarquee => "Rectangular Marquee Tool",
             Tool::EllipseMarquee => "Elliptical Marquee Tool",
+            Tool::SingleRowMarquee => "Single Row Marquee Tool",
+            Tool::SingleColumnMarquee => "Single Column Marquee Tool",
             Tool::Brush => "Brush Tool",
             Tool::Pencil => "Pencil Tool",
             Tool::MixerBrush => "Mixer Brush Tool",
@@ -235,6 +243,11 @@ impl Tool {
         matches!(self, Self::Type | Self::VerticalType)
     }
 
+    /// The Single Row and Single Column Marquee tools: a click selects a one-pixel line.
+    pub fn is_single_marquee(self) -> bool {
+        matches!(self, Self::SingleRowMarquee | Self::SingleColumnMarquee)
+    }
+
     /// Retouching and painting tools that stroke with the brush (share the brush cursor and chip).
     pub fn is_brushlike(self) -> bool {
         matches!(
@@ -277,7 +290,7 @@ impl Tool {
             Tool::Remove | Tool::SpotHealing | Tool::Healing | Tool::Patch | Tool::ContentAwareMove | Tool::RedEye => 'J',
             Tool::CloneStamp | Tool::PatternStamp => 'S',
             Tool::HistoryBrush => 'Y',
-            Tool::Blur | Tool::Sharpen | Tool::Smudge => '\0',
+            Tool::Blur | Tool::Sharpen | Tool::Smudge | Tool::SingleRowMarquee | Tool::SingleColumnMarquee => '\0',
             Tool::Dodge | Tool::Burn | Tool::Sponge => 'O',
             Tool::QuickSelection | Tool::ObjectSelection => 'W',
             Tool::Pen => 'P',
@@ -291,6 +304,8 @@ impl Tool {
             Tool::Move => "✥",
             Tool::RectMarquee => "⬚",
             Tool::EllipseMarquee => "◌",
+            Tool::SingleRowMarquee => "┅",
+            Tool::SingleColumnMarquee => "┇",
             Tool::Brush => "🖌",
             Tool::MixerBrush => "🖌",
             Tool::Eraser => "⌫",
@@ -1180,7 +1195,10 @@ mod tests {
         assert!(!Tool::RedEye.is_brushlike());
         assert_eq!(Tool::from_name("patternStamp"), Some(Tool::PatternStamp));
         assert_eq!(Tool::from_name("Pattern Stamp Tool"), Some(Tool::PatternStamp));
-        assert_eq!(Tool::ALL.len(), 53);
+        assert_eq!(Tool::ALL.len(), 55);
+        assert_eq!(Tool::from_name("singleRowMarquee"), Some(Tool::SingleRowMarquee));
+        assert_eq!(Tool::from_name("Single Column Marquee Tool"), Some(Tool::SingleColumnMarquee));
+        assert_eq!(Tool::SingleRowMarquee.key(), '\0', "no shortcut in Photoshop: ⇧M cycles only the Rectangular and Elliptical");
         assert_eq!(Tool::from_name("Remove Tool"), Some(Tool::Remove));
         assert_eq!(Tool::Remove.key(), 'J');
         assert!(Tool::Remove.is_brushlike());

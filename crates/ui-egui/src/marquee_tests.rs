@@ -692,3 +692,66 @@ fn size_readout_follows_the_ruler_unit() {
     ur.rulers = Unit::Millimeters;
     assert_eq!(crate::canvas::readout_in(&ur, 150.0, [1644.0, 2659.0], [0.0, 0.0, 3425.0, 100.0])[0], "579.97 mm");
 }
+
+fn click_at(h: &mut Harness<'static, PhotocraftApp>, x: f32, y: f32, m: Modifiers) {
+    move_to(h, x, y);
+    let p = screen(h, x, y);
+    button(h, p, true, m);
+    button(h, p, false, m);
+    h.run_steps(2);
+}
+
+#[test]
+fn single_row_and_column_marquees_select_a_one_pixel_line_across_the_canvas() {
+    let mut h = harness(Tool::SingleRowMarquee);
+    click_at(&mut h, 100.4, 57.6, Modifiers::NONE);
+    assert_eq!(selection(&h), Rect::new(0, 57, 400, 58), "the whole row under the click");
+    let st = h.state().session.active().unwrap();
+    let sel = st.doc.selection.as_ref().unwrap();
+    assert!(sel.sample_channel(0, 57, 0) > 0.99 && sel.sample_channel(399, 57, 0) > 0.99, "hard-edged, end to end");
+    assert!(sel.sample_channel(200, 56, 0) < 0.01 && sel.sample_channel(200, 58, 0) < 0.01, "one pixel tall");
+
+    // A second click replaces it; ⇧ adds a column, as with the other marquees.
+    h.state_mut().ui.tool = Tool::SingleColumnMarquee;
+    click_at(&mut h, 120.5, 200.0, Modifiers::SHIFT);
+    assert_eq!(selection(&h), Rect::new(0, 0, 400, 300), "row ∪ column spans the canvas");
+    let st = h.state().session.active().unwrap();
+    let sel = st.doc.selection.as_ref().unwrap();
+    assert!(sel.sample_channel(120, 0, 0) > 0.99 && sel.sample_channel(120, 299, 0) > 0.99, "the column");
+    assert!(sel.sample_channel(10, 57, 0) > 0.99, "the row is kept");
+    assert!(sel.sample_channel(10, 10, 0) < 0.01);
+
+    // ⌥ subtracts a column from a rectangle.
+    h.state_mut().run("select.rect", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
+    click_at(&mut h, 30.0, 20.0, Modifiers::ALT);
+    let st = h.state().session.active().unwrap();
+    let sel = st.doc.selection.as_ref().unwrap();
+    assert!(sel.sample_channel(30, 30, 0) < 0.01 && sel.sample_channel(29, 30, 0) > 0.99 && sel.sample_channel(31, 30, 0) > 0.99);
+}
+
+#[test]
+fn a_single_row_drag_selects_the_row_it_is_released_on() {
+    let mut h = harness(Tool::SingleRowMarquee);
+    press_at(&mut h, 50.0, 40.0, Modifiers::NONE);
+    move_to(&mut h, 80.0, 120.0);
+    {
+        let app = h.state();
+        let d = app.drag.as_ref().expect("a drag is under way");
+        assert_eq!(crate::canvas::single_marquee_drag_px(app, d), Some([0.0, 120.0, 400.0, 121.0]), "the preview follows the pointer");
+    }
+    release_at(&mut h, 80.0, 120.0, Modifiers::NONE);
+    assert_eq!(selection(&h), Rect::new(0, 120, 400, 121));
+}
+
+#[test]
+fn single_marquee_lines_stay_on_the_canvas() {
+    use crate::canvas::single_marquee_px;
+    let (row, col) = (Tool::SingleRowMarquee, Tool::SingleColumnMarquee);
+    assert_eq!(single_marquee_px(row, [-50.0, -3.0], [400, 300]), Some([0.0, 0.0, 400.0, 1.0]), "above: the top row");
+    assert_eq!(single_marquee_px(row, [9e9, 1e12], [400, 300]), Some([0.0, 299.0, 400.0, 300.0]), "below: the bottom row");
+    assert_eq!(single_marquee_px(col, [400.0, 10.0], [400, 300]), Some([399.0, 0.0, 400.0, 300.0]));
+    assert_eq!(single_marquee_px(row, [f64::NAN, 10.0], [400, 300]), None);
+    assert_eq!(single_marquee_px(col, [f64::INFINITY, 10.0], [400, 300]), None);
+    assert_eq!(single_marquee_px(row, [1.0, 1.0], [0, 0]), None, "an empty canvas selects nothing");
+    assert_eq!(single_marquee_px(Tool::RectMarquee, [1.0, 1.0], [400, 300]), None);
+}
