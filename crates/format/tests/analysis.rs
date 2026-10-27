@@ -17,6 +17,7 @@ fn measurement_and_notes_roundtrip_and_default_when_absent() {
         points: vec![[1.0, 2.0], [5.5, 6.5]],
     }];
     doc.measurement.ruler = Some(Ruler { start: [1.0, 1.0], end: [30.0, 20.0], protractor: Some([1.0, 25.0]) });
+    doc.measurement.color_samplers = vec![[3.5, 4.5], [39.5, 29.5]];
     doc.notes = vec![Note {
         author: "A".into(),
         text: "Fix the sky\nplease".into(),
@@ -36,4 +37,17 @@ fn measurement_and_notes_roundtrip_and_default_when_absent() {
     v.as_object_mut().unwrap().remove("notes");
     let old: photocraft_format::manifest::DocM = serde_json::from_value(v).unwrap();
     assert!(old.measurement.is_empty() && old.notes.is_empty());
+}
+
+#[test]
+fn a_manifest_without_color_samplers_still_loads() {
+    let mut doc = Document::new("a", Size::new(8, 8), ColorMode::Rgb, SampleType::U8);
+    doc.measurement.color_samplers = vec![[1.5, 1.5]];
+    let m = read_manifest(&save_to_bytes(&doc, &SaveOptions::default()).unwrap()).unwrap();
+    let mut v = serde_json::to_value(&m.document).unwrap();
+    // A file from before the Color Sampler tool: its measurement has no `color_samplers`.
+    let measurement = v["measurement"].as_object_mut().unwrap();
+    assert!(measurement.remove("color_samplers").is_some(), "{measurement:?}");
+    let old: photocraft_format::manifest::DocM = serde_json::from_value(v).unwrap();
+    assert!(old.measurement.color_samplers.is_empty());
 }

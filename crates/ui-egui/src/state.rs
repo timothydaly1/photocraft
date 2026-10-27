@@ -75,6 +75,8 @@ pub enum Tool {
     MagicWand,
     Crop,
     Eyedropper,
+    /// Places up to ten fixed colour readouts (the Info panel's #1, #2, …).
+    ColorSampler,
     Ruler,
     Note,
     Count,
@@ -122,7 +124,7 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub const ALL: [Tool; 55] = [
+    pub const ALL: [Tool; 56] = [
         Tool::Move,
         Tool::RectMarquee,
         Tool::EllipseMarquee,
@@ -134,6 +136,7 @@ impl Tool {
         Tool::MagicWand,
         Tool::Crop,
         Tool::Eyedropper,
+        Tool::ColorSampler,
         Tool::Ruler,
         Tool::Note,
         Tool::Count,
@@ -194,6 +197,7 @@ impl Tool {
             Tool::BackgroundEraser => "Background Eraser Tool",
             Tool::MagicEraser => "Magic Eraser Tool",
             Tool::Eyedropper => "Eyedropper Tool",
+            Tool::ColorSampler => "Color Sampler Tool",
             Tool::Ruler => "Ruler Tool",
             Tool::Note => "Note Tool",
             Tool::Count => "Count Tool",
@@ -278,7 +282,7 @@ impl Tool {
             Tool::RectMarquee | Tool::EllipseMarquee => 'M',
             Tool::Brush | Tool::Pencil | Tool::MixerBrush => 'B',
             Tool::Eraser | Tool::BackgroundEraser | Tool::MagicEraser => 'E',
-            Tool::Eyedropper | Tool::Ruler | Tool::Note | Tool::Count => 'I',
+            Tool::Eyedropper | Tool::ColorSampler | Tool::Ruler | Tool::Note | Tool::Count => 'I',
             Tool::Lasso | Tool::PolygonLasso | Tool::MagneticLasso => 'L',
             Tool::MagicWand => 'W',
             Tool::Crop | Tool::Slice | Tool::SliceSelect => 'C',
@@ -1195,10 +1199,13 @@ mod tests {
         assert!(!Tool::RedEye.is_brushlike());
         assert_eq!(Tool::from_name("patternStamp"), Some(Tool::PatternStamp));
         assert_eq!(Tool::from_name("Pattern Stamp Tool"), Some(Tool::PatternStamp));
-        assert_eq!(Tool::ALL.len(), 55);
+        assert_eq!(Tool::ALL.len(), 56);
         assert_eq!(Tool::from_name("singleRowMarquee"), Some(Tool::SingleRowMarquee));
         assert_eq!(Tool::from_name("Single Column Marquee Tool"), Some(Tool::SingleColumnMarquee));
         assert_eq!(Tool::SingleRowMarquee.key(), '\0', "no shortcut in Photoshop: ⇧M cycles only the Rectangular and Elliptical");
+        assert_eq!(Tool::from_name("colorSampler"), Some(Tool::ColorSampler));
+        assert_eq!(Tool::from_name("Color Sampler Tool"), Some(Tool::ColorSampler));
+        assert_eq!(Tool::ColorSampler.key(), 'I');
         assert_eq!(Tool::from_name("Remove Tool"), Some(Tool::Remove));
         assert_eq!(Tool::Remove.key(), 'J');
         assert!(Tool::Remove.is_brushlike());

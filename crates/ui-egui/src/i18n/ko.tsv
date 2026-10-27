@@ -1561,6 +1561,8 @@
 	ExtraBold	아주 굵게
 	ExtraLight	아주 가늘게
 	Eyedropper Tool	스포이드 도구
+	Color Sampler Tool	색상 샘플러 도구
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	클릭하여 샘플러 배치(최대 10개)  ·  드래그하여 이동  ·  {key}-클릭하여 삭제
 	Fade	점차 약하게
 	Fill Opacity	칠 불투명도
 	Film & Video	필름 및 비디오

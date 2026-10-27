@@ -21,7 +21,7 @@ const TOOL_SECTIONS: &[&[&[Tool]]] = &[
         &[Tool::Lasso, Tool::PolygonLasso, Tool::MagneticLasso],
         &[Tool::ObjectSelection, Tool::QuickSelection, Tool::MagicWand],
         &[Tool::Crop, Tool::Slice, Tool::SliceSelect],
-        &[Tool::Eyedropper, Tool::Ruler, Tool::Note, Tool::Count],
+        &[Tool::Eyedropper, Tool::ColorSampler, Tool::Ruler, Tool::Note, Tool::Count],
     ],
     &[
         &[Tool::Remove, Tool::SpotHealing, Tool::Healing, Tool::Patch, Tool::ContentAwareMove, Tool::RedEye],
@@ -1629,11 +1629,50 @@ fn info_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         row(&mut cols[1], "H:", sel.map_or_else(dash, |r| fy(r.height() as f64)));
     });
     widgets::hairline(ui);
+    // Color Sampler readouts (#1046): #n and its R, G, B, in placement order.
+    let samplers = sampler_readouts(app);
+    if !samplers.is_empty() {
+        let q = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as i32;
+        for (i, c) in samplers.iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.add_sized([22.0, 16.0], egui::Label::new(RichText::new(format!("#{}", i + 1)).color(t.text_dim).size(11.5)));
+                for (k, v) in [("R:", c[0]), ("G:", c[1]), ("B:", c[2])] {
+                    ui.label(RichText::new(k).color(t.text_dim).size(11.5));
+                    ui.add_sized([26.0, 16.0], egui::Label::new(RichText::new(q(v).to_string()).font(mono.clone()).color(t.text)));
+                }
+            });
+        }
+        widgets::hairline(ui);
+    }
     ui.label(
         RichText::new(crate::i18n::fmt(tl!("Doc: {w} × {h} px"), &[("w", &size.width.to_string()), ("h", &size.height.to_string())]))
             .color(t.text_dim)
             .size(11.5),
     );
+}
+
+/// The active document's color sampler colours, #1 first, at the Eyedropper's Sample Size;
+/// cached until the document, its revision (which placing or moving a sampler bumps) or the
+/// size changes.
+pub(crate) fn sampler_readouts(app: &mut PhotocraftApp) -> Vec<[f32; 4]> {
+    let Some(st) = app.session.active() else { return Vec::new() };
+    if st.doc.measurement.color_samplers.is_empty() {
+        return Vec::new();
+    }
+    let size = app.ui.tool_options.eyedropper_size;
+    let key = (st.doc.id.0, st.revision, size);
+    if let Some((k, v)) = &app.sampler_readout
+        && *k == key
+    {
+        return v.clone();
+    }
+    let Ok(r) = app.session.execute("colorSampler.list", json!({"size": size})) else { return Vec::new() };
+    let colors: Vec<[f32; 4]> = r["samplers"]
+        .as_array()
+        .map(|rows| rows.iter().filter_map(|s| serde_json::from_value::<[f32; 4]>(s["color"].clone()).ok()).collect())
+        .unwrap_or_default();
+    app.sampler_readout = Some((key, colors.clone()));
+    colors
 }
 
 fn navigator(app: &mut PhotocraftApp, ui: &mut egui::Ui) {

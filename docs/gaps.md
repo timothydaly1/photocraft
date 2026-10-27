@@ -1,6 +1,6 @@
 # Where PhotoCraft falls short of Photoshop
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-27 · **Change:** minor (Single Row and Single Column Marquee tools: 55 of 68 tools) · **Target:** Adobe Photoshop 2026
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-27 · **Change:** minor (Single Row/Column Marquee and Color Sampler tools: 56 of 68 tools) · **Target:** Adobe Photoshop 2026
 
 Every known shortfall against Photoshop 2026 (27.11.0), one entry each, ranked by user impact
 on the way to beta. This is the work list agents pick from: take the highest-ranked entry that
@@ -24,7 +24,7 @@ what an agent can't finish alone.
 | G3 | User-reported bug backlog | stability, UI | blocks beta | 250–400 h | [target-app-parity](target-app-parity.md) |
 | G4 | Brush feel | UI / painting | high | 100–180 h | [brush-parity](brush-parity.md) |
 | G5 | Transform, handles and modifiers | UI | high | 60–110 h | [ui-parity](ui-parity.md) |
-| G6 | Missing tools (13) | features | high | 60–100 h | [ui-parity](ui-parity.md#tools) |
+| G6 | Missing tools (12) | features | high | 60–100 h | [ui-parity](ui-parity.md#tools) |
 | G7 | Workspaces shown as parameter dialogs | features | high | 80–140 h | [target-app-parity](target-app-parity.md#feature-areas) |
 | G8 | Type depth | features | high | 120–200 h | [target-app-parity](target-app-parity.md#feature-areas) |
 | G9 | Panels, preferences and workspace | UI | medium-high | 150–250 h | [ui-parity](ui-parity.md#panels-and-workspace) |
@@ -54,8 +54,8 @@ what an agent can't finish alone.
   scripted check there) is the only real oracle.
 
 ### G6. Missing tools
-- **Missing (13 of 68):** Artboard, Perspective Crop,
-  Frame, Color Sampler (#1046), Color Replacement (engine command exists), Art History Brush,
+- **Missing (12 of 68):** Artboard, Perspective Crop,
+  Frame, Color Replacement (engine command exists), Art History Brush,
   Freeform Pen and Curvature Pen (#1054), Add Anchor Point, Delete Anchor Point, Convert Point
   (only as Pen + ⌥), Horizontal Type Mask, Vertical Type Mask.
 - **Evidence:** `Tool` enum (`crates/ui-egui/src/state.rs`) against the 67 `<tool>` entries of
@@ -211,6 +211,7 @@ what an agent can't finish alone.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-27 | minor | Color Sampler tool added (#1046): tools 55 → 56 of 68 |
 | 2026-10-27 | minor | Single Row and Single Column Marquee tools added: tools 53 → 55 of 68 |
 | 2026-10-10 | minor | Checked against the alpha gate (no alpha blockers); #2374 marked closed |
 | 2026-10-10 | major | First version, from the full re-measure against Photoshop 2026 27.11.0 and the open issues |

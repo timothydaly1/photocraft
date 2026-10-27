@@ -1569,6 +1569,8 @@
 	ExtraBold	Extra-gras
 	ExtraLight	Extra-maigre
 	Eyedropper Tool	Outil Pipette
+	Color Sampler Tool	Outil Échantillonnage de couleur
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	Cliquez pour placer un échantillonneur (10 au plus)  ·  faites glisser pour le déplacer  ·  {key}-clic pour le supprimer
 	Fade	Estompage
 	Fill Opacity	Opacité du remplissage
 	Film & Video	Film et vidéo

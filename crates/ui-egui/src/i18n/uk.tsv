@@ -1513,6 +1513,8 @@
 	Background Eraser Tool	Інструмент «Фонова гумка»
 	Magic Eraser Tool	Інструмент «Чарівна гумка»
 	Eyedropper Tool	Інструмент «Піпетка»
+	Color Sampler Tool	Інструмент «Колірний зразок»
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	Клацніть, щоб поставити зразок (до 10)  ·  перетягніть, щоб перемістити  ·  {key}-клацання видаляє
 	Note Tool	Інструмент «Нотатка»
 	Lasso Tool	Інструмент «Ласо»
 	Polygonal Lasso Tool	Інструмент «Багатокутне ласо»

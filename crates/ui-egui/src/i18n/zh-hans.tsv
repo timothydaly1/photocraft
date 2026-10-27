@@ -1603,6 +1603,8 @@
 	ExtraBold	特粗
 	ExtraLight	特细
 	Eyedropper Tool	吸管工具
+	Color Sampler Tool	颜色取样器工具
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	单击放置取样点（最多 10 个）  ·  拖动以移动  ·  {key}-单击以删除
 	Fade	渐隐
 	Fill Opacity	填充不透明度
 	Film & Video	电影与视频

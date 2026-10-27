@@ -76,7 +76,13 @@ pub struct Measurement {
     /// Index into `count_groups` that new markers go to.
     pub active_count_group: usize,
     pub ruler: Option<Ruler>,
+    /// Color Sampler tool points (document pixels, at pixel centres), in placement order: the
+    /// Info panel reads out #1, #2, … under each. At most [`MAX_COLOR_SAMPLERS`].
+    pub color_samplers: Vec<[f64; 2]>,
 }
+
+/// Photoshop's Color Sampler limit per document.
+pub const MAX_COLOR_SAMPLERS: usize = 10;
 
 impl Measurement {
     pub fn is_empty(&self) -> bool {

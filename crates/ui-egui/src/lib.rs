@@ -396,6 +396,9 @@ pub(crate) type HistJob = (DocId, u64, std::sync::mpsc::Receiver<(DocId, f64, st
 /// The Info panel's cached sample: pixel x, y, document revision and Eyedropper Sample Size.
 type InfoSampleKey = (i32, i32, u64, u32);
 
+/// The Info panel's cached color sampler readouts: document id, revision and Sample Size.
+type SamplerReadoutKey = (u64, u64, u32);
+
 pub struct PhotocraftApp {
     pub session: Session,
     pub ui: UiState,
@@ -563,6 +566,8 @@ pub struct PhotocraftApp {
     pub(crate) clone_preview: Option<crate::canvas::ClonePreviewCache>,
     /// Info panel sample cache: ((x, y, revision, Sample Size), composite RGBA).
     info_sample: Option<(InfoSampleKey, [f32; 4])>,
+    /// Info panel color sampler cache: each sampler's composite RGBA, #1 first.
+    sampler_readout: Option<(SamplerReadoutKey, Vec<[f32; 4]>)>,
     /// Guide being dragged (from a ruler or with the Move tool).
     pub(crate) guide_drag: Option<rulers::GuideDrag>,
     /// Crop tool gesture in progress (see `crop_ui`).
@@ -681,6 +686,7 @@ impl PhotocraftApp {
             hover_doc: None,
             clone_preview: None,
             info_sample: None,
+            sampler_readout: None,
             os_clip_sig: None,
             clip_external: false,
             clip_read_for_paste: false,

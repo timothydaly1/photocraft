@@ -1587,6 +1587,8 @@
 	ExtraBold	Extra pogrubiona
 	ExtraLight	Extra cienka
 	Eyedropper Tool	Narzędzie Zakraplacz
+	Color Sampler Tool	Narzędzie Próbnik kolorów
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	Kliknij, aby umieścić próbnik (do 10)  ·  przeciągnij, aby przenieść  ·  {key}+kliknięcie usuwa
 	Fade	Zanikanie
 	Fill Opacity	Krycie wypełnienia
 	Film & Video	Film i wideo

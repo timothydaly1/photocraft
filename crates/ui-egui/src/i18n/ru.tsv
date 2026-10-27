@@ -1530,6 +1530,8 @@
 	Background Eraser Tool	Фоновый ластик
 	Magic Eraser Tool	Волшебный ластик
 	Eyedropper Tool	Пипетка
+	Color Sampler Tool	Цветовой эталон
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	Щелчок ставит эталон (не более 10)  ·  перетаскивание перемещает  ·  {key}-щелчок удаляет
 	Note Tool	Заметки
 	Lasso Tool	Лассо
 	Polygonal Lasso Tool	Многоугольное лассо

@@ -1594,6 +1594,8 @@
 	ExtraBold	エクストラボールド
 	ExtraLight	エクストラライト
 	Eyedropper Tool	スポイトツール
+	Color Sampler Tool	カラーサンプラーツール
+	Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete	クリックでサンプラーを配置（最大10個）  ·  ドラッグで移動  ·  {key}+クリックで削除
 	Fade	フェード
 	Fill Opacity	塗りの不透明度
 	Film & Video	フィルム・ビデオ

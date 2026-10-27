@@ -27,6 +27,8 @@ pub enum Drag {
     Count(usize, usize, [f64; 2]),
     /// Moving note `index`: grab offset from its position.
     Note(usize, [f64; 2]),
+    /// Moving color sampler `index` from where it was.
+    Sampler(usize, [f64; 2]),
 }
 
 /// View state of the analysis tools and panels.
@@ -225,10 +227,10 @@ fn set_ruler(app: &mut PhotocraftApp, r: Ruler) {
     let _ = app.run("image.analysis.rulerTool", json!({"start": r.start, "end": r.end, "protractor": r.protractor}));
 }
 
-/// Pointer input for the Ruler, Count and Note tools. Returns true when consumed.
+/// Pointer input for the Ruler, Count, Note and Color Sampler tools. Returns true when consumed.
 pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     let tool = app.active_tool();
-    if !matches!(tool, Tool::Ruler | Tool::Count | Tool::Note) {
+    if !matches!(tool, Tool::Ruler | Tool::Count | Tool::Note | Tool::ColorSampler) {
         return false;
     }
     let Some(doc) = app.session.active().map(|d| d.doc.clone()) else { return true };
@@ -292,6 +294,35 @@ pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers) ->
                 let _ = app.run("count.move", json!({"group": g, "index": i, "to": [x, y]}));
             }
         }
+        // Photoshop: a click places a sampler, dragging one moves it, ⌥-click deletes it. A
+        // drag that ends off the canvas deletes it too.
+        (Tool::ColorSampler, ToolEvent::Down { x, y, .. }) => match nearest_sampler(&doc, [x, y], tol) {
+            Some(i) if mods.alt => {
+                let _ = app.run("colorSampler.remove", json!({"index": i}));
+            }
+            Some(i) => app.ui.analysis.drag = Some(Drag::Sampler(i, [x, y])),
+            None if !mods.alt => {
+                // Past the tenth, say why nothing was placed.
+                if let Err(e) = app.run("colorSampler.add", json!({"x": x, "y": y})) {
+                    app.ui.status = e;
+                    app.ui.status_error = true;
+                }
+            }
+            None => {}
+        },
+        (Tool::ColorSampler, ToolEvent::Up { x, y }) => {
+            if let Some(Drag::Sampler(i, from)) = app.ui.analysis.drag.take()
+                && dist(from, [x, y]) > 0.5
+            {
+                let (w, h) = (f64::from(doc.size.width), f64::from(doc.size.height));
+                let on_canvas = x >= 0.0 && y >= 0.0 && x < w && y < h;
+                let _ = if on_canvas {
+                    app.run("colorSampler.move", json!({"index": i, "to": [x, y]}))
+                } else {
+                    app.run("colorSampler.remove", json!({"index": i}))
+                };
+            }
+        }
         (Tool::Note, ToolEvent::Down { x, y, .. }) => {
             let z = f64::from(app.point_zoom().max(0.01));
             let hit =
@@ -338,6 +369,29 @@ fn nearest_marker(d: &Document, at: [f64; 2], tol: f64) -> Option<(usize, usize)
     best.map(|b| (b.1, b.2))
 }
 
+/// The color sampler within `tol` px of `at`, the nearest first.
+fn nearest_sampler(d: &Document, at: [f64; 2], tol: f64) -> Option<usize> {
+    let near = d.measurement.color_samplers.iter().enumerate().map(|(i, q)| (dist(*q, at), i)).filter(|(dd, _)| *dd <= tol);
+    near.min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, i)| i)
+}
+
+/// A color sampler marker: a target ring with four ticks and its number below right, white over a
+/// dark outline so it reads on any image.
+fn sampler_marker(painter: &egui::Painter, p: Pos2, number: usize) {
+    for (w, c) in [(3.0, Color32::from_black_alpha(200)), (1.0, Color32::WHITE)] {
+        painter.circle_stroke(p, 4.5, Stroke::new(w, c));
+        for d in [vec2(1.0, 0.0), vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, -1.0)] {
+            painter.line_segment([p + d * 4.5, p + d * 8.0], Stroke::new(w, c));
+        }
+    }
+    let at = p + vec2(6.0, 5.0);
+    let font = FontId::proportional(11.0);
+    for d in [vec2(-1.0, 0.0), vec2(1.0, 0.0), vec2(0.0, -1.0), vec2(0.0, 1.0)] {
+        painter.text(at + d, Align2::LEFT_TOP, number.to_string(), font.clone(), Color32::BLACK);
+    }
+    painter.text(at, Align2::LEFT_TOP, number.to_string(), font, Color32::WHITE);
+}
+
 fn color32(c: [f32; 3]) -> Color32 {
     Color32::from_rgb((c[0].clamp(0.0, 1.0) * 255.0) as u8, (c[1].clamp(0.0, 1.0) * 255.0) as u8, (c[2].clamp(0.0, 1.0) * 255.0) as u8)
 }
@@ -380,6 +434,16 @@ pub fn draw_overlay(app: &PhotocraftApp, painter: &egui::Painter, xf: &ViewXform
             }
         }
     }
+    // Samplers stay on the canvas whatever the tool, as in Photoshop; the one being dragged
+    // follows the pointer.
+    let dragged = match (app.ui.analysis.drag, app.hover_doc) {
+        (Some(Drag::Sampler(i, _)), Some(h)) => Some((i, h)),
+        _ => None,
+    };
+    for (i, p) in doc.measurement.color_samplers.iter().enumerate() {
+        let p = dragged.filter(|(d, _)| *d == i).map_or(*p, |(_, h)| h);
+        sampler_marker(painter, xf.to_screen(p[0] as f32, p[1] as f32), i + 1);
+    }
     if v.shows(v.show.notes) {
         for (i, n) in doc.notes.iter().enumerate() {
             let p = xf.to_screen(n.position[0] as f32, n.position[1] as f32);
@@ -413,9 +477,11 @@ fn readout(ui: &mut egui::Ui, label: &str, value: Option<f64>) {
     ui.add_space(6.0);
 }
 
-/// Options bar of the Ruler, Count and Note tools. Returns true when drawn.
+/// Options bar of the Ruler, Count, Note and Color Sampler tools. Returns true when drawn.
 pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bool {
-    let Some(doc) = app.session.active().map(|d| d.doc.clone()) else { return matches!(tool, Tool::Ruler | Tool::Count | Tool::Note) };
+    let Some(doc) = app.session.active().map(|d| d.doc.clone()) else {
+        return matches!(tool, Tool::Ruler | Tool::Count | Tool::Note | Tool::ColorSampler);
+    };
     match tool {
         Tool::Ruler => {
             let sc = doc.measurement.scale.clone();
@@ -488,6 +554,25 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
                     let _ = app.run("count.setGroup", json!({"markerSize": ms.round(), "labelSize": ls.round()}));
                 }
             }
+            true
+        }
+        Tool::ColorSampler => {
+            let t = Tokens::get(ui.ctx());
+            ui.label(RichText::new(tl!("Sample Size:")).color(t.text_dim).size(11.0));
+            let sizes = crate::eyedropper_ui::size_options();
+            crate::widgets::dropdown(ui, "color-sampler-size", &mut app.ui.tool_options.eyedropper_size, &sizes, 130.0);
+            let any = !doc.measurement.color_samplers.is_empty();
+            if ui.add_enabled_ui(any, |ui| crate::widgets::secondary_button(ui, tl!("Clear All"), 0.0)).inner.clicked() {
+                let _ = app.run("colorSampler.clear", json!({}));
+            }
+            crate::widgets::vline(ui, 22.0);
+            ui.label(
+                RichText::new(crate::i18n::fmt(
+                    tl!("Click to place a sampler (up to 10)  ·  drag to move  ·  {key}-click to delete"),
+                    &[("key", &crate::shortcuts::pretty("Alt"))],
+                ))
+                .color(t.text_faint),
+            );
             true
         }
         Tool::Note => {
@@ -980,6 +1065,55 @@ pub(crate) mod tests {
         down(&mut app, 50.0, 50.0, egui::Modifiers::ALT);
         up(&mut app, 50.0, 50.0);
         assert_eq!(pts(&app).len(), 1);
+    }
+
+    #[test]
+    fn color_sampler_tool_places_moves_and_deletes_samplers() {
+        let (mut app, ctx) = app();
+        app.ui.tool = Tool::ColorSampler;
+        let pts = |app: &PhotocraftApp| app.session.active().unwrap().doc.measurement.color_samplers.clone();
+        for (x, y) in [(20.2, 20.7), (50.0, 50.0), (80.0, 10.0)] {
+            down(&mut app, x, y, egui::Modifiers::NONE);
+            up(&mut app, x, y);
+        }
+        assert_eq!(pts(&app), vec![[20.5, 20.5], [50.5, 50.5], [80.5, 10.5]], "on pixel centres, in click order");
+        // Drag #1 elsewhere.
+        down(&mut app, 21.0, 21.0, egui::Modifiers::NONE);
+        up(&mut app, 30.0, 25.0);
+        assert_eq!(pts(&app)[0], [30.5, 25.5]);
+        // ⌥-click deletes #2; #3 becomes #2.
+        down(&mut app, 50.0, 50.0, egui::Modifiers::ALT);
+        up(&mut app, 50.0, 50.0);
+        assert_eq!(pts(&app), vec![[30.5, 25.5], [80.5, 10.5]]);
+        // Dragged off the canvas: deleted, as in Photoshop.
+        down(&mut app, 80.0, 10.0, egui::Modifiers::NONE);
+        up(&mut app, 250.0, 10.0);
+        assert_eq!(pts(&app), vec![[30.5, 25.5]]);
+        // The Info panel reads the sampler and follows edits under it.
+        assert_eq!(crate::panels::sampler_readouts(&mut app), vec![[1.0, 1.0, 1.0, 1.0]]);
+        app.run("select.all", json!({})).unwrap();
+        app.run("edit.fill", json!({"use": "color", "color": "#0000ff"})).unwrap();
+        assert_eq!(crate::panels::sampler_readouts(&mut app), vec![[0.0, 0.0, 1.0, 1.0]], "a new revision is read again");
+        // The tenth is the last; the eleventh click says why nothing happened.
+        for i in 0..9 {
+            down(&mut app, 100.0 + f64::from(i) * 9.0, 80.0, egui::Modifiers::NONE);
+            up(&mut app, 100.0 + f64::from(i) * 9.0, 80.0);
+        }
+        assert_eq!(pts(&app).len(), 10);
+        down(&mut app, 5.0, 95.0, egui::Modifiers::NONE);
+        up(&mut app, 5.0, 95.0);
+        assert_eq!(pts(&app).len(), 10);
+        assert!(app.ui.status_error && app.ui.status.contains("at most 10"), "{}", app.ui.status);
+        // The options bar draws, and its Clear All empties the list through the engine.
+        PhotocraftApp::setup_context(&ctx, Default::default());
+        for _ in 0..3 {
+            let mut o = ctx.run_ui(Default::default(), |ui| {
+                ui.horizontal(|ui| assert!(options_bar(&mut app, ui, Tool::ColorSampler)));
+            });
+            o.textures_delta.clear();
+        }
+        app.run("colorSampler.clear", json!({})).unwrap();
+        assert!(pts(&app).is_empty() && crate::panels::sampler_readouts(&mut app).is_empty());
     }
 
     #[test]

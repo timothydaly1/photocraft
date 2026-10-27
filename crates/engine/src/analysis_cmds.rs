@@ -157,7 +157,7 @@ fn doc(s: &Session) -> Result<Arc<Document>> {
 
 /// Change the document without a history step (ruler line: view-like state that is still saved
 /// with the document). A clean document stays clean.
-fn set_quiet(s: &mut Session, f: impl FnOnce(&mut Document)) -> Result<()> {
+pub(crate) fn set_quiet(s: &mut Session, f: impl FnOnce(&mut Document)) -> Result<()> {
     let st = s.active_mut().ok_or(EngineError::NoDocument)?;
     let mut d = (*st.doc).clone();
     f(&mut d);

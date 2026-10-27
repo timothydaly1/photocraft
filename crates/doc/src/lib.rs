@@ -28,7 +28,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 pub use adjust::Adjustment;
 pub use advanced::{AdvancedBlending, Knockout};
-pub use analysis::{CountGroup, Measurement, MeasurementScale, Note, Ruler};
+pub use analysis::{CountGroup, MAX_COLOR_SAMPLERS, Measurement, MeasurementScale, Note, Ruler};
 pub use blend_if::{BlendIf, BlendRange};
 pub use comps::{Artboard, ArtboardBackground, CompAppearance, CompLayerState, LayerComp};
 pub use effects::{
